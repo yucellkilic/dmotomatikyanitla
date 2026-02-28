@@ -586,7 +586,7 @@
               <th onclick="sortBy('name')" id="th-name">İsim</th>
               <th onclick="sortBy('phone')" id="th-phone">Telefon</th>
               <th onclick="sortBy('service')" id="th-service">Hizmet</th>
-              <th onclick="sortBy('date')" id="th-date">Randevu Tarihi</th>
+              <th onclick="sortBy('appointment_date')" id="th-appointment_date">Randevu Tarihi</th>
             </tr>
           </thead>
           <tbody id="appointmentsBody">
@@ -780,7 +780,7 @@
           '<td><strong>' + esc(a.name) + '</strong></td>' +
           '<td>' + esc(a.phone) + '</td>' +
           '<td>' + esc(a.service) + '</td>' +
-          '<td>' + esc(a.date) + '</td>' +
+          '<td>' + (a.appointment_date ? formatDate(a.appointment_date) : esc(a.date)) + '</td>' +
           '</tr>';
       });
       tbody.innerHTML = html;
@@ -813,9 +813,17 @@
     function updateStats() {
       document.getElementById("statTotal").textContent = allAppointments.length;
 
-      var today = new Date().toISOString().slice(0, 10);
+      // Bugünkü randevuları appointment_date üzerinden hesapla (Istanbul timezone)
+      var now = new Date();
+      var todayStr = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
+
       var todayCount = allAppointments.filter(function (a) {
-        return a.created_at && a.created_at.startsWith(today);
+        var dateField = a.appointment_date || a.created_at;
+        if (!dateField) return false;
+        // appointment_date varsa randevu tarihine göre, yoksa created_at'a göre
+        return dateField.startsWith(todayStr);
       }).length;
       document.getElementById("statToday").textContent = todayCount;
     }

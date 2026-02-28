@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { parseTurkishDate } = require("./dateParser");
 
 // .env dosyasını yükle
 dotenv.config();
@@ -61,11 +62,11 @@ async function getBusinessBySlug(slug) {
 }
 
 // ─── Supabase: Randevu Kaydet ───────────────────────────────────────
-async function saveAppointment({ name, phone, service, date, business_id }) {
+async function saveAppointment({ name, phone, service, appointment_date, business_id }) {
     try {
         const { data, error } = await supabase
             .from("appointments")
-            .insert([{ name, phone, service, date, business_id }])
+            .insert([{ name, phone, service, appointment_date, business_id }])
             .select();
 
         if (error) {
@@ -145,19 +146,27 @@ async function handleChat({ userId, message, businessId, res }) {
             break;
 
         case "ask_date":
-            session.date = message;
-
             if (!session.service) {
                 reply = "Hizmet bilgisi eksik. Lütfen hangi hizmeti istediğinizi belirtin.";
                 session.step = "ask_region";
                 return res.json({ reply });
             }
 
+            // Türkçe doğal dili ISO timestamp'e çevir
+            const parsed = parseTurkishDate(message);
+            if (parsed.error) {
+                reply = parsed.error;
+                // Adımı değiştirme, tekrar tarih sor
+                return res.json({ reply, session: { ...session } });
+            }
+
+            session.date = parsed.readable;
+
             const result = await saveAppointment({
                 name: session.name,
                 phone: session.phone,
                 service: session.service,
-                date: session.date,
+                appointment_date: parsed.iso,
                 business_id: businessId,
             });
 
@@ -167,7 +176,7 @@ async function handleChat({ userId, message, businessId, res }) {
                     `👤 İsim: ${session.name}\n` +
                     `📞 Telefon: ${session.phone}\n` +
                     `💇 Hizmet: ${session.service || "Belirtilmedi"}\n` +
-                    `📅 Tarih: ${session.date}\n\n` +
+                    `📅 Tarih: ${parsed.readable}\n\n` +
                     `Teşekkür ederiz, görüşmek üzere!`;
             } else {
                 reply =
