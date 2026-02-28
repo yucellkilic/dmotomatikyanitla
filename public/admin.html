@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DM Otomasyon — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#0b0b10;
+      --surface:#13131a;
+      --surface-2:#1c1c28;
+      --surface-3:#252535;
+      --border:#2e2e42;
+      --accent:#a78bfa;
+      --accent-hover:#c4b5fd;
+      --accent-glow:rgba(167,139,250,.18);
+      --danger:#f87171;
+      --danger-hover:#fca5a5;
+      --success:#34d399;
+      --text:#e8e8f0;
+      --text-dim:#8888a4;
+      --text-muted:#5c5c78;
+      --radius:12px;
+      --radius-lg:16px;
+      --transition:.2s cubic-bezier(.4,0,.2,1);
+    }
+
+    html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+
+    /* ── Layout ───────────────────────────── */
+    .app{max-width:960px;margin:0 auto;padding:20px 16px;min-height:100dvh;display:flex;flex-direction:column}
+
+    /* ── Header ──────────────────────────── */
+    .header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:18px 24px;border-radius:var(--radius-lg);
+      background:var(--surface);border:1px solid var(--border);
+      margin-bottom:20px;flex-wrap:wrap;gap:12px;
+    }
+    .header-left{display:flex;align-items:center;gap:14px}
+    .header-logo{
+      width:42px;height:42px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#6d28d9);
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;font-weight:700;color:#fff;
+      box-shadow:0 0 16px var(--accent-glow);flex-shrink:0;
+    }
+    .header h1{font-size:18px;font-weight:600;letter-spacing:-.3px}
+    .header-subtitle{font-size:12px;color:var(--text-dim);margin-top:1px}
+    .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+    /* ── Buttons ─────────────────────────── */
+    .btn{
+      padding:9px 18px;border-radius:10px;border:none;
+      font-family:inherit;font-size:13px;font-weight:500;
+      cursor:pointer;transition:all var(--transition);
+      display:inline-flex;align-items:center;gap:6px;
+    }
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent),#6d28d9);
+      color:#fff;box-shadow:0 0 14px var(--accent-glow);
+    }
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 24px var(--accent-glow)}
+    .btn-ghost{
+      background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border);
+    }
+    .btn-ghost:hover{color:var(--text);border-color:var(--text-dim)}
+    .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+    .btn-danger:hover{background:var(--danger);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+    /* ── Card / Section ──────────────────── */
+    .card{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:28px;
+      animation:fadeIn .35s var(--transition) both;
+    }
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── Login ───────────────────────────── */
+    #loginSection{
+      max-width:400px;margin:80px auto;
+    }
+    #loginSection h2{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px}
+    #loginSection p.subtitle{font-size:13px;color:var(--text-dim);text-align:center;margin-bottom:28px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    .form-group input{
+      width:100%;padding:12px 16px;border-radius:10px;
+      background:var(--surface-2);border:1px solid var(--border);
+      color:var(--text);font-size:14px;font-family:inherit;
+      outline:none;transition:border var(--transition),box-shadow var(--transition);
+    }
+    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .form-group input::placeholder{color:var(--text-muted)}
+    .login-btn{width:100%;justify-content:center;padding:13px;font-size:15px;margin-top:8px}
+    .error-msg{
+      color:var(--danger);font-size:12px;text-align:center;margin-top:12px;
+      min-height:18px;
+    }
+
+    /* ── Toolbar ──────────────────────────── */
+    .toolbar{
+      display:flex;align-items:center;gap:12px;
+      margin-bottom:16px;flex-wrap:wrap;
+    }
+    .toolbar select{
+      padding:10px 14px;border-radius:10px;
+      background:var(--surface-2);border:1px solid var(--border);
+      color:var(--text);font-size:13px;font-family:inherit;
+      outline:none;cursor:pointer;min-width:180px;
+      transition:border var(--transition);
+    }
+    .toolbar select:focus{border-color:var(--accent)}
+    .search-input{
+      flex:1;min-width:200px;padding:10px 14px 10px 38px;
+      border-radius:10px;background:var(--surface-2);
+      border:1px solid var(--border);color:var(--text);
+      font-size:13px;font-family:inherit;outline:none;
+      transition:border var(--transition),box-shadow var(--transition);
+    }
+    .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .search-input::placeholder{color:var(--text-muted)}
+    .search-wrap{position:relative;flex:1;min-width:200px}
+    .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
+
+    /* ── Table ────────────────────────────── */
+    .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead{background:var(--surface-2)}
+    th{
+      padding:12px 16px;text-align:left;font-weight:600;font-size:11px;
+      text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);
+      white-space:nowrap;cursor:pointer;user-select:none;
+      transition:color var(--transition);
+    }
+    th:hover{color:var(--accent)}
+    th.sorted{color:var(--accent)}
+    td{padding:12px 16px;border-top:1px solid var(--border);white-space:nowrap}
+    tr{transition:background var(--transition)}
+    tr:hover{background:var(--surface-2)}
+    .empty-row td{text-align:center;color:var(--text-muted);padding:40px 16px;font-size:14px}
+
+    /* ── Stats bar ───────────────────────── */
+    .stats-bar{
+      display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;
+    }
+    .stat-card{
+      flex:1;min-width:140px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);padding:16px 20px;
+    }
+    .stat-card .label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:4px}
+    .stat-card .value{font-size:24px;font-weight:700;color:var(--accent)}
+
+    /* ── Loading spinner ─────────────────── */
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-state{text-align:center;padding:40px;color:var(--text-dim)}
+
+    /* ── Hidden ───────────────────────────── */
+    .hidden{display:none !important}
+
+    /* ── Responsive ──────────────────────── */
+    @media(max-width:600px){
+      .app{padding:12px 10px}
+      .header{padding:14px 16px}
+      .header h1{font-size:15px}
+      .card{padding:20px 16px}
+      #loginSection{margin:40px auto}
+      .toolbar{flex-direction:column}
+      .toolbar select{width:100%;min-width:auto}
+      .search-wrap{width:100%;min-width:auto}
+      .stats-bar{flex-direction:column}
+      .stat-card{min-width:auto}
+      td,th{padding:10px 12px;font-size:12px}
+    }
+    @media(max-width:380px){
+      .header-logo{width:36px;height:36px;font-size:14px}
+      .header h1{font-size:14px}
+      .btn{padding:8px 14px;font-size:12px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ═══ LOGIN SECTION ═══ -->
+  <div id="loginSection" class="card">
+    <h2>🔐 Admin Giriş</h2>
+    <p class="subtitle">İşletme panelinize erişin</p>
+    <div class="form-group">
+      <label>E-posta</label>
+      <input type="email" id="loginEmail" placeholder="ornek@email.com" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label>Şifre</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary login-btn" id="loginBtn" onclick="handleLogin()">Giriş Yap</button>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+
+  <!-- ═══ DASHBOARD SECTION ═══ -->
+  <div id="dashboardSection" class="hidden">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-logo">DM</div>
+        <div>
+          <h1>Admin Panel</h1>
+          <div class="header-subtitle" id="userEmail"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <select id="businessSelect" onchange="onBusinessChange()"></select>
+        <button class="btn btn-ghost" onclick="loadAppointments()">🔄 Yenile</button>
+        <button class="btn btn-danger" onclick="handleLogout()">Çıkış</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="label">Toplam Randevu</div>
+        <div class="value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Bugünkü</div>
+        <div class="value" id="statToday">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">İşletme</div>
+        <div class="value" id="statBusiness">—</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="İsim veya telefon ara..." oninput="filterAppointments()" />
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('created_at')" id="th-created_at" class="sorted">Tarih ↓</th>
+            <th onclick="sortBy('name')" id="th-name">İsim</th>
+            <th onclick="sortBy('phone')" id="th-phone">Telefon</th>
+            <th onclick="sortBy('service')" id="th-service">Hizmet</th>
+            <th onclick="sortBy('date')" id="th-date">Randevu Tarihi</th>
+          </tr>
+        </thead>
+        <tbody id="appointmentsBody">
+          <tr class="empty-row"><td colspan="5">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // ─── State ─────────────────────────────────────────────
+  let supabase = null;
+  let allAppointments = [];
+  let currentBusinessId = null;
+  let sortField = "created_at";
+  let sortAsc = false;
+
+  // ─── Init ──────────────────────────────────────────────
+  async function init() {
+    try {
+      const res = await fetch("/api/config");
+      const config = await res.json();
+      supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+      // Check existing session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        showDashboard(session.user);
+      }
+    } catch (err) {
+      console.error("Config yüklenemedi:", err);
+    }
+  }
+
+  // ─── Auth ──────────────────────────────────────────────
+  async function handleLogin() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errorEl = document.getElementById("loginError");
+    const btn = document.getElementById("loginBtn");
+
+    if (!email || !password) {
+      errorEl.textContent = "E-posta ve şifre gerekli.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Giriş yapılıyor...';
+    errorEl.textContent = "";
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errorEl.textContent = error.message === "Invalid login credentials"
+        ? "E-posta veya şifre hatalı."
+        : error.message;
+      btn.disabled = false;
+      btn.textContent = "Giriş Yap";
+      return;
+    }
+
+    showDashboard(data.user);
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    document.getElementById("loginSection").classList.remove("hidden");
+    document.getElementById("dashboardSection").classList.add("hidden");
+    document.getElementById("loginPassword").value = "";
+    document.getElementById("loginError").textContent = "";
+    document.getElementById("loginBtn").disabled = false;
+    document.getElementById("loginBtn").textContent = "Giriş Yap";
+  }
+
+  // Enter key for login
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !document.getElementById("loginSection").classList.contains("hidden")) {
+      handleLogin();
+    }
+  });
+
+  // ─── Dashboard ─────────────────────────────────────────
+  async function showDashboard(user) {
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("dashboardSection").classList.remove("hidden");
+    document.getElementById("userEmail").textContent = user.email;
+
+    await loadBusinesses(user.id);
+  }
+
+  // ─── Businesses ────────────────────────────────────────
+  async function loadBusinesses(userId) {
+    const { data, error } = await supabase
+      .from("business_members")
+      .select("business_id, role, businesses(id, name, slug)")
+      .eq("user_id", userId);
+
+    const select = document.getElementById("businessSelect");
+    select.innerHTML = "";
+
+    if (error || !data || data.length === 0) {
+      select.innerHTML = '<option value="">İşletme bulunamadı</option>';
+      document.getElementById("statBusiness").textContent = "—";
+      return;
+    }
+
+    data.forEach((membership, i) => {
+      const biz = membership.businesses;
+      if (!biz) return;
+      const opt = document.createElement("option");
+      opt.value = biz.id;
+      opt.textContent = `${biz.name} (${membership.role})`;
+      select.appendChild(opt);
+    });
+
+    currentBusinessId = select.value;
+    if (data[0]?.businesses?.name) {
+      document.getElementById("statBusiness").textContent = data[0].businesses.name;
+    }
+
+    await loadAppointments();
+  }
+
+  // ─── Appointments ──────────────────────────────────────
+  async function loadAppointments() {
+    if (!currentBusinessId) return;
+
+    const tbody = document.getElementById("appointmentsBody");
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5"><span class="spinner"></span> Yükleniyor...</td></tr>';
+
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("business_id", currentBusinessId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Hata: ${error.message}</td></tr>`;
+      return;
+    }
+
+    allAppointments = data || [];
+    updateStats();
+    renderAppointments();
+  }
+
+  function onBusinessChange() {
+    const select = document.getElementById("businessSelect");
+    currentBusinessId = select.value;
+    const selectedText = select.options[select.selectedIndex]?.textContent || "—";
+    document.getElementById("statBusiness").textContent = selectedText.replace(/ \(.+\)$/, "");
+    loadAppointments();
+  }
+
+  // ─── Render ────────────────────────────────────────────
+  function renderAppointments() {
+    const tbody = document.getElementById("appointmentsBody");
+    const search = document.getElementById("searchInput").value.toLowerCase().trim();
+
+    let filtered = allAppointments;
+    if (search) {
+      filtered = filtered.filter(a =>
+        (a.name || "").toLowerCase().includes(search) ||
+        (a.phone || "").toLowerCase().includes(search)
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      const aVal = (a[sortField] || "").toString().toLowerCase();
+      const bVal = (b[sortField] || "").toString().toLowerCase();
+      if (aVal < bVal) return sortAsc ? -1 : 1;
+      if (aVal > bVal) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Randevu bulunamadı</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(a => `
+      <tr>
+        <td>${formatDate(a.created_at)}</td>
+        <td><strong>${esc(a.name)}</strong></td>
+        <td>${esc(a.phone)}</td>
+        <td>${esc(a.service)}</td>
+        <td>${esc(a.date)}</td>
+      </tr>
+    `).join("");
+  }
+
+  // ─── Utils ─────────────────────────────────────────────
+  function filterAppointments() {
+    renderAppointments();
+  }
+
+  function sortBy(field) {
+    // Remove sorted class from all
+    document.querySelectorAll("th").forEach(th => th.classList.remove("sorted"));
+
+    if (sortField === field) {
+      sortAsc = !sortAsc;
+    } else {
+      sortField = field;
+      sortAsc = true;
+    }
+
+    const th = document.getElementById("th-" + field);
+    if (th) {
+      th.classList.add("sorted");
+      th.textContent = th.textContent.replace(/ [↑↓]$/, "") + (sortAsc ? " ↑" : " ↓");
+    }
+
+    renderAppointments();
+  }
+
+  function updateStats() {
+    document.getElementById("statTotal").textContent = allAppointments.length;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = allAppointments.filter(a =>
+      a.created_at && a.created_at.startsWith(today)
+    ).length;
+    document.getElementById("statToday").textContent = todayCount;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" })
+      + " " + d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function esc(str) {
+    if (!str) return "—";
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ─── Start ─────────────────────────────────────────────
+  init();
+</script>
+
+</body>
+</html>

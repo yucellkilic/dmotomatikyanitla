@@ -83,6 +83,19 @@ async function saveAppointment({ name, phone, service, date, business_id }) {
 
 // ─── Endpoints ──────────────────────────────────────────────────────
 
+// Admin panel config (anon key only — service role NEVER exposed)
+app.get("/api/config", (req, res) => {
+    res.json({
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    });
+});
+
+// Admin panel sayfası
+app.get("/admin", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
 // Ana endpoint
 app.get("/", (req, res) => {
     res.json({
