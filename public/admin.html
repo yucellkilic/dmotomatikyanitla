@@ -780,6 +780,40 @@
       background: var(--surface-3)
     }
 
+    /* ── Toast ───────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      z-index: 2000;
+      pointer-events: none;
+      transition: transform .3s ease, opacity .3s ease;
+      opacity: 0;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1
+    }
+
+    .toast.success {
+      background: #065f46;
+      color: #6ee7b7;
+      border: 1px solid #34d399
+    }
+
+    .toast.error {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #f87171
+    }
+
     @media(max-width:380px) {
       .header-logo {
         width: 36px;
@@ -800,6 +834,8 @@
 </head>
 
 <body>
+
+  <div id="toast" class="toast"></div>
 
   <div class="app" id="app">
 
@@ -1111,6 +1147,8 @@
         locale: "tr",
         initialView: "dayGridMonth",
         height: "auto",
+        editable: true,
+        eventDurationEditable: false,
         headerToolbar: {
           left: "prev,next today",
           center: "title",
@@ -1166,6 +1204,39 @@
         },
         eventDidMount: function (info) {
           info.el.title = info.event.extendedProps.name + " | " + info.event.extendedProps.service;
+        },
+        eventDrop: async function (info) {
+          var newDate = info.event.start.toISOString();
+          var appointmentId = info.event.id;
+
+          var conflictResult = await sb
+            .from("appointments")
+            .select("id")
+            .eq("business_id", currentBusinessId)
+            .eq("appointment_date", newDate)
+            .neq("id", appointmentId)
+            .limit(1);
+
+          if (conflictResult.data && conflictResult.data.length > 0) {
+            info.revert();
+            showToast("Bu saat için zaten randevu var.", "error");
+            return;
+          }
+
+          var updateResult = await sb
+            .from("appointments")
+            .update({ appointment_date: newDate })
+            .eq("id", appointmentId)
+            .eq("business_id", currentBusinessId);
+
+          if (updateResult.error) {
+            console.error("Update hatası:", updateResult.error);
+            info.revert();
+            showToast("Güncelleme başarısız oldu.", "error");
+            return;
+          }
+
+          showToast("Randevu güncellendi", "success");
         }
       });
       calendar.render();
@@ -1175,6 +1246,14 @@
       if (e.target === document.getElementById("eventModal")) {
         e.target.classList.add("hidden");
       }
+    }
+
+    function showToast(msg, type) {
+      var el = document.getElementById("toast");
+      el.textContent = msg;
+      el.className = "toast " + (type || "success");
+      setTimeout(function () { el.classList.add("show"); }, 10);
+      setTimeout(function () { el.classList.remove("show"); }, 3000);
     }
 
     // ─── Render ────────────────────────────────────────────
