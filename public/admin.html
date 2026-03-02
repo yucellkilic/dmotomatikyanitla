@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <style>
     *,
     *::before,
@@ -494,6 +495,291 @@
       }
     }
 
+    /* ── View Tabs ────────────────────────── */
+    .view-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px
+    }
+
+    .view-tab {
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-dim);
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .view-tab:hover {
+      color: var(--text);
+      border-color: var(--text-dim)
+    }
+
+    .view-tab.active {
+      background: linear-gradient(135deg, var(--accent), #6d28d9);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+
+    /* ── Calendar ─────────────────────────── */
+    #calendarWrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 20px;
+      position: relative;
+      min-height: 500px;
+    }
+
+    #calendar {
+      min-height: 480px
+    }
+
+    .fc {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px
+    }
+
+    .fc .fc-toolbar-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .fc .fc-button {
+      background: var(--surface-2) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-dim) !important;
+      font-size: 12px !important;
+      padding: 6px 12px !important;
+      border-radius: 8px !important;
+      text-transform: capitalize !important;
+    }
+
+    .fc .fc-button:hover {
+      color: var(--text) !important;
+      border-color: var(--text-dim) !important
+    }
+
+    .fc .fc-button-active {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+    }
+
+    .fc .fc-daygrid-day {
+      background: var(--surface);
+      border-color: var(--border)
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+      background: var(--surface-2)
+    }
+
+    .fc .fc-daygrid-day-number {
+      color: var(--text-dim);
+      font-size: 12px;
+      padding: 6px 8px
+    }
+
+    .fc .fc-day-today .fc-daygrid-day-number {
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    .fc .fc-col-header-cell {
+      background: var(--surface-2);
+      border-color: var(--border)
+    }
+
+    .fc .fc-col-header-cell-cushion {
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 8px 4px
+    }
+
+    .fc .fc-scrollgrid {
+      border-color: var(--border)
+    }
+
+    .fc td,
+    .fc th {
+      border-color: var(--border) !important
+    }
+
+    .fc .fc-daygrid-event {
+      background: linear-gradient(135deg, rgba(167, 139, 250, .25), rgba(109, 40, 217, .25)) !important;
+      border: 1px solid var(--accent) !important;
+      border-radius: 6px !important;
+      padding: 2px 6px !important;
+      margin: 1px 2px !important;
+      cursor: pointer;
+    }
+
+    .fc .fc-daygrid-event .fc-event-title {
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 500
+    }
+
+    .fc .fc-daygrid-event .fc-event-time {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600
+    }
+
+    .fc .fc-timegrid-event {
+      background: linear-gradient(135deg, rgba(167, 139, 250, .3), rgba(109, 40, 217, .3)) !important;
+      border: 1px solid var(--accent) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+    }
+
+    .fc .fc-timegrid-event .fc-event-title {
+      color: var(--text);
+      font-size: 11px
+    }
+
+    .fc .fc-timegrid-event .fc-event-time {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600
+    }
+
+    .fc .fc-timegrid-slot {
+      border-color: var(--border) !important
+    }
+
+    .fc .fc-timegrid-axis-cushion {
+      color: var(--text-muted);
+      font-size: 10px
+    }
+
+    .fc .fc-more-link {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600
+    }
+
+    .cal-loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      background: rgba(11, 11, 16, .7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-lg);
+    }
+
+    .cal-loading.hidden {
+      display: none
+    }
+
+    /* ── Event Modal ──────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      background: rgba(0, 0, 0, .6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn .2s ease both;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+      animation: none
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 90%;
+      max-width: 400px;
+      animation: fadeIn .25s ease both;
+    }
+
+    .modal h3 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--accent)
+    }
+
+    .modal-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .modal-row:last-of-type {
+      border-bottom: none
+    }
+
+    .modal-row .modal-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      width: 28px;
+      text-align: center
+    }
+
+    .modal-row .modal-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .modal-row .modal-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text)
+    }
+
+    .modal-close {
+      width: 100%;
+      margin-top: 20px;
+      padding: 11px;
+      border-radius: 10px;
+      border: none;
+      background: var(--surface-2);
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+      background: var(--surface-3)
+    }
+
     @media(max-width:380px) {
       .header-logo {
         width: 36px;
@@ -597,6 +883,51 @@
         </table>
       </div>
 
+      <!-- View Tabs -->
+      <div class="view-tabs">
+        <button class="view-tab active" id="tabTable" onclick="switchView('table')">📋 Liste</button>
+        <button class="view-tab" id="tabCalendar" onclick="switchView('calendar')">📅 Takvim</button>
+      </div>
+
+      <!-- Calendar -->
+      <div id="calendarWrap" class="hidden">
+        <div class="cal-loading hidden" id="calLoading"><span class="spinner"></span></div>
+        <div id="calendar"></div>
+      </div>
+
+    </div>
+
+    <!-- Event Modal -->
+    <div class="modal-overlay hidden" id="eventModal" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>📋 Randevu Detayı</h3>
+        <div class="modal-row"><span class="modal-icon">👤</span>
+          <div>
+            <div class="modal-label">İsim</div>
+            <div class="modal-value" id="modalName">—</div>
+          </div>
+        </div>
+        <div class="modal-row"><span class="modal-icon">📞</span>
+          <div>
+            <div class="modal-label">Telefon</div>
+            <div class="modal-value" id="modalPhone">—</div>
+          </div>
+        </div>
+        <div class="modal-row"><span class="modal-icon">💇</span>
+          <div>
+            <div class="modal-label">Hizmet</div>
+            <div class="modal-value" id="modalService">—</div>
+          </div>
+        </div>
+        <div class="modal-row"><span class="modal-icon">📅</span>
+          <div>
+            <div class="modal-label">Randevu Tarihi</div>
+            <div class="modal-value" id="modalDate">—</div>
+          </div>
+        </div>
+        <button class="modal-close"
+          onclick="document.getElementById('eventModal').classList.add('hidden')">Kapat</button>
+      </div>
     </div>
 
   </div>
@@ -608,6 +939,8 @@
     var currentBusinessId = null;
     var sortField = "created_at";
     var sortAsc = false;
+    var calendar = null;
+    var currentView = "table";
 
     // ─── Init ──────────────────────────────────────────────
     async function init() {
@@ -744,6 +1077,104 @@
       var selectedText = select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : "—";
       document.getElementById("statBusiness").textContent = selectedText.replace(/ \(.+\)$/, "");
       loadAppointments();
+      if (calendar) calendar.refetchEvents();
+    }
+
+    // ─── View Toggle ─────────────────────────────────────
+    function switchView(view) {
+      currentView = view;
+      document.getElementById("tabTable").classList.toggle("active", view === "table");
+      document.getElementById("tabCalendar").classList.toggle("active", view === "calendar");
+
+      var tableSection = document.querySelector(".toolbar");
+      var tableWrap = document.querySelector(".table-wrap");
+      var calWrap = document.getElementById("calendarWrap");
+
+      if (view === "calendar") {
+        tableSection.classList.add("hidden");
+        tableWrap.classList.add("hidden");
+        calWrap.classList.remove("hidden");
+        if (!calendar) initCalendar();
+        setTimeout(function () { calendar.updateSize(); }, 50);
+      } else {
+        tableSection.classList.remove("hidden");
+        tableWrap.classList.remove("hidden");
+        calWrap.classList.add("hidden");
+      }
+    }
+
+    // ─── Calendar ─────────────────────────────────────────
+    function initCalendar() {
+      var calEl = document.getElementById("calendar");
+      calendar = new FullCalendar.Calendar(calEl, {
+        timeZone: "local",
+        locale: "tr",
+        initialView: "dayGridMonth",
+        height: "auto",
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+        events: function (fetchInfo, successCallback, failureCallback) {
+          if (!currentBusinessId || !sb) {
+            successCallback([]);
+            return;
+          }
+          sb.from("appointments")
+            .select("id,name,phone,service,appointment_date")
+            .eq("business_id", currentBusinessId)
+            .gte("appointment_date", fetchInfo.startStr)
+            .lt("appointment_date", fetchInfo.endStr)
+            .order("appointment_date", { ascending: true })
+            .then(function (result) {
+              if (result.error) {
+                failureCallback(result.error);
+                return;
+              }
+              var mapped = (result.data || []).map(function (apt) {
+                return {
+                  id: apt.id,
+                  title: (apt.name || "") + " - " + (apt.service || ""),
+                  start: apt.appointment_date,
+                  allDay: false,
+                  extendedProps: {
+                    phone: apt.phone,
+                    service: apt.service,
+                    name: apt.name
+                  }
+                };
+              });
+              successCallback(mapped);
+            });
+        },
+        loading: function (isLoading) {
+          var el = document.getElementById("calLoading");
+          if (isLoading) el.classList.remove("hidden");
+          else el.classList.add("hidden");
+        },
+        eventClick: function (info) {
+          var props = info.event.extendedProps;
+          document.getElementById("modalName").textContent = props.name || "—";
+          document.getElementById("modalPhone").textContent = props.phone || "—";
+          document.getElementById("modalService").textContent = props.service || "—";
+          var start = info.event.start;
+          document.getElementById("modalDate").textContent = start
+            ? start.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" }) + " " + start.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+            : "—";
+          document.getElementById("eventModal").classList.remove("hidden");
+        },
+        eventDidMount: function (info) {
+          info.el.title = info.event.extendedProps.name + " | " + info.event.extendedProps.service;
+        }
+      });
+      calendar.render();
+    }
+
+    function closeModal(e) {
+      if (e.target === document.getElementById("eventModal")) {
+        e.target.classList.add("hidden");
+      }
     }
 
     // ─── Render ────────────────────────────────────────────
