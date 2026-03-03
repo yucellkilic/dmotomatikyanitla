@@ -61,6 +61,17 @@ async function getBusinessBySlug(slug) {
     return data;
 }
 
+// ─── Supabase: Business Settings ────────────────────────────────
+async function getBusinessSettings(businessId) {
+    const { data, error } = await supabase
+        .from("business_settings")
+        .select("working_start, working_end, slot_duration")
+        .eq("business_id", businessId)
+        .single();
+    if (error || !data) return { working_start: "09:00", working_end: "18:00", slot_duration: 30 };
+    return data;
+}
+
 // ─── Supabase: Randevu Kaydet ───────────────────────────────────────
 async function saveAppointment({ name, phone, service, appointment_date, business_id }) {
     try {
@@ -161,6 +172,25 @@ async function handleChat({ userId, message, businessId, res }) {
             }
 
             session.date = parsed.readable;
+
+            // Mesai saatleri ve slot kontrolü
+            const settings = await getBusinessSettings(businessId);
+            const apptDate = new Date(parsed.iso);
+            const apptMinutes = apptDate.getHours() * 60 + apptDate.getMinutes();
+            const [sH, sM] = settings.working_start.split(":").map(Number);
+            const [eH, eM] = settings.working_end.split(":").map(Number);
+            const startMin = sH * 60 + sM;
+            const endMin = eH * 60 + eM;
+
+            if (apptMinutes < startMin || apptMinutes >= endMin) {
+                reply = `Mesai saatleri dışında randevu veremiyoruz. Çalışma saatlerimiz ${settings.working_start} - ${settings.working_end} arasıdır.`;
+                return res.json({ reply, session: { ...session } });
+            }
+
+            if (apptDate.getMinutes() % settings.slot_duration !== 0) {
+                reply = `Lütfen ${settings.slot_duration} dakikalık slotlara uygun saat seçin. (Örn: ${settings.working_start}, ${sH}:${String(sM + settings.slot_duration).padStart(2, "0")})`;
+                return res.json({ reply, session: { ...session } });
+            }
 
             const result = await saveAppointment({
                 name: session.name,

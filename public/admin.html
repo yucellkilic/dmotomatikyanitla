@@ -977,6 +977,7 @@
     var sortAsc = false;
     var calendar = null;
     var currentView = "table";
+    var businessSettings = null;
 
     // ─── Init ──────────────────────────────────────────────
     async function init() {
@@ -1082,6 +1083,39 @@
       }
 
       await loadAppointments();
+      await loadBusinessSettings();
+    }
+
+    async function loadBusinessSettings() {
+      if (!currentBusinessId || !sb) { businessSettings = null; return; }
+      var result = await sb
+        .from("business_settings")
+        .select("*")
+        .eq("business_id", currentBusinessId)
+        .single();
+      businessSettings = (!result.error && result.data)
+        ? result.data
+        : { working_start: "09:00", working_end: "18:00", slot_duration: 30 };
+      updateCalendarSlots();
+    }
+
+    function isValidSlot(date, slotDuration) {
+      return date.getMinutes() % slotDuration === 0;
+    }
+
+    function isWithinWorkingHours(date, workingStart, workingEnd) {
+      var parts = workingStart.split(":").map(Number);
+      var startTotal = parts[0] * 60 + parts[1];
+      parts = workingEnd.split(":").map(Number);
+      var endTotal = parts[0] * 60 + parts[1];
+      var currentTotal = date.getHours() * 60 + date.getMinutes();
+      return currentTotal >= startTotal && currentTotal < endTotal;
+    }
+
+    function updateCalendarSlots() {
+      if (!calendar || !businessSettings) return;
+      calendar.setOption("slotMinTime", businessSettings.working_start + ":00");
+      calendar.setOption("slotMaxTime", businessSettings.working_end + ":00");
     }
 
     // ─── Appointments ──────────────────────────────────────
@@ -1113,6 +1147,7 @@
       var selectedText = select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : "—";
       document.getElementById("statBusiness").textContent = selectedText.replace(/ \(.+\)$/, "");
       loadAppointments();
+      loadBusinessSettings();
       if (calendar) calendar.refetchEvents();
     }
 
@@ -1149,6 +1184,8 @@
         height: "auto",
         editable: true,
         eventDurationEditable: false,
+        slotMinTime: "09:00:00",
+        slotMaxTime: "18:00:00",
         headerToolbar: {
           left: "prev,next today",
           center: "title",
@@ -1206,8 +1243,22 @@
           info.el.title = info.event.extendedProps.name + " | " + info.event.extendedProps.service;
         },
         eventDrop: async function (info) {
-          var newDate = info.event.start.toISOString();
+          var newDateObj = info.event.start;
+          var newDate = newDateObj.toISOString();
           var appointmentId = info.event.id;
+
+          if (businessSettings) {
+            if (!isWithinWorkingHours(newDateObj, businessSettings.working_start, businessSettings.working_end)) {
+              info.revert();
+              showToast("Mesai saatleri dışında.", "error");
+              return;
+            }
+            if (!isValidSlot(newDateObj, businessSettings.slot_duration)) {
+              info.revert();
+              showToast(businessSettings.slot_duration + " dakikalık slotlara uygun değil.", "error");
+              return;
+            }
+          }
 
           var conflictResult = await sb
             .from("appointments")
@@ -1352,7 +1403,7 @@
       return div.innerHTML;
     }
 
-    // ─── Start ─────────────────────────────────────────────
+    // ─── Start ────────────────────────────────────
     init();
   </script>
 
