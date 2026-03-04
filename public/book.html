@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Randevu Al</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0b0b10;
+            --surface: #13131a;
+            --surface-2: #1c1c28;
+            --surface-3: #252535;
+            --border: #2e2e42;
+            --accent: #a78bfa;
+            --accent-hover: #c4b5fd;
+            --accent-glow: rgba(167, 139, 250, .18);
+            --success: #34d399;
+            --danger: #f87171;
+            --text: #e8e8f0;
+            --text-dim: #8888a4;
+            --text-muted: #5c5c78;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --transition: .2s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text)
+        }
+
+        .app {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 24px 16px 40px
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 28px;
+            animation: fadeIn .4s ease both
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 12px
+        }
+
+        .page-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px
+        }
+
+        .page-header p {
+            color: var(--text-dim);
+            font-size: 13px
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 16px;
+            animation: fadeIn .4s ease both
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .card-title .icon {
+            font-size: 18px
+        }
+
+        /* Date picker */
+        .date-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border var(--transition)
+        }
+
+        .date-input:focus {
+            border-color: var(--accent)
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(.7)
+        }
+
+        /* Slots */
+        .slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 12px
+        }
+
+        .slot {
+            padding: 10px 6px;
+            text-align: center;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            user-select: none
+        }
+
+        .slot:hover:not(.taken):not(.selected) {
+            color: var(--text);
+            border-color: var(--text-dim)
+        }
+
+        .slot.selected {
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 0 14px var(--accent-glow)
+        }
+
+        .slot.taken {
+            opacity: .35;
+            cursor: not-allowed;
+            text-decoration: line-through
+        }
+
+        .slots-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 16px 0
+        }
+
+        .slots-loading {
+            text-align: center;
+            padding: 20px 0
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 14px
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border var(--transition)
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent)
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted)
+        }
+
+        /* Button */
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 8px
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow)
+        }
+
+        .btn-submit:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* Messages */
+        .msg {
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 12px;
+            animation: fadeIn .3s ease both
+        }
+
+        .msg.error {
+            background: rgba(248, 113, 113, .12);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, .25)
+        }
+
+        .msg.success {
+            background: rgba(52, 211, 153, .1);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        /* Success screen */
+        .success-screen {
+            text-align: center;
+            padding: 32px 16px;
+            animation: fadeIn .4s ease both
+        }
+
+        .success-icon {
+            font-size: 56px;
+            margin-bottom: 16px
+        }
+
+        .success-screen h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--success)
+        }
+
+        .success-screen p {
+            color: var(--text-dim);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 4px
+        }
+
+        .success-detail {
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .btn-new {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 12px 28px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-decoration: none
+        }
+
+        .btn-new:hover {
+            color: var(--text);
+            border-color: var(--text-dim)
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        /* 404 */
+        .not-found {
+            text-align: center;
+            padding: 60px 20px
+        }
+
+        .not-found h2 {
+            font-size: 22px;
+            margin-bottom: 8px
+        }
+
+        .not-found p {
+            color: var(--text-dim);
+            font-size: 14px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Loading -->
+        <div id="loadingView" class="card" style="text-align:center;padding:40px">
+            <span class="spinner"></span>
+            <p style="margin-top:12px;color:var(--text-dim);font-size:13px">Yükleniyor...</p>
+        </div>
+
+        <!-- 404 -->
+        <div id="notFoundView" class="hidden not-found">
+            <h2>İşletme Bulunamadı</h2>
+            <p>Bu bağlantı geçersiz veya işletme mevcut değil.</p>
+        </div>
+
+        <!-- Booking Form -->
+        <div id="bookingView" class="hidden">
+            <div class="page-header">
+                <div class="logo">DM</div>
+                <h1 id="bizName">—</h1>
+                <p>Online Randevu Sistemi</p>
+            </div>
+
+            <!-- Date Selection -->
+            <div class="card">
+                <div class="card-title"><span class="icon">📅</span> Tarih Seçin</div>
+                <input type="date" class="date-input" id="dateInput" />
+                <div id="slotsContainer"></div>
+            </div>
+
+            <!-- Info Form -->
+            <div class="card" id="formCard">
+                <div class="card-title"><span class="icon">📝</span> Bilgileriniz</div>
+                <div class="form-group">
+                    <label>Ad Soyad</label>
+                    <input type="text" id="nameInput" placeholder="Ahmet Yılmaz" />
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <input type="tel" id="phoneInput" placeholder="05XX XXX XX XX" />
+                </div>
+                <div class="form-group">
+                    <label>Hizmet (opsiyonel)</label>
+                    <input type="text" id="serviceInput" placeholder="Örn: Saç kesim" />
+                </div>
+                <button class="btn-submit" id="submitBtn" disabled onclick="submitBooking()">Randevu Oluştur</button>
+                <div id="formMsg"></div>
+            </div>
+        </div>
+
+        <!-- Success -->
+        <div id="successView" class="hidden">
+            <div class="card success-screen">
+                <div class="success-icon">🎉</div>
+                <h2>Randevunuz Oluşturuldu!</h2>
+                <p id="successDetails"></p>
+                <button class="btn-new" onclick="resetForm()">Yeni Randevu Al</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var slug = "";
+        var selectedSlot = null;
+        var bizData = null;
+
+        // Parse slug from URL: /book/:slug or ?slug=...
+        (function () {
+            var parts = window.location.pathname.split("/").filter(Boolean);
+            if (parts.length >= 2 && parts[0] === "book") {
+                slug = parts[1];
+            }
+            if (!slug) {
+                var params = new URLSearchParams(window.location.search);
+                slug = params.get("slug") || "";
+            }
+            if (!slug) {
+                show("notFoundView");
+                return;
+            }
+            loadBusiness();
+        })();
+
+        function show(id) {
+            ["loadingView", "notFoundView", "bookingView", "successView"].forEach(function (v) {
+                document.getElementById(v).classList.add("hidden");
+            });
+            document.getElementById(id).classList.remove("hidden");
+        }
+
+        async function loadBusiness() {
+            try {
+                var res = await fetch("/api/public/business/" + encodeURIComponent(slug));
+                if (!res.ok) { show("notFoundView"); return; }
+                bizData = await res.json();
+                document.getElementById("bizName").textContent = bizData.business.name;
+                document.title = bizData.business.name + " — Randevu Al";
+                // Set min date to today
+                var today = new Date().toISOString().slice(0, 10);
+                document.getElementById("dateInput").min = today;
+                document.getElementById("dateInput").value = today;
+                show("bookingView");
+                loadSlots(today);
+            } catch (e) {
+                show("notFoundView");
+            }
+        }
+
+        document.getElementById("dateInput").addEventListener("change", function () {
+            selectedSlot = null;
+            updateSubmitState();
+            loadSlots(this.value);
+        });
+
+        async function loadSlots(date) {
+            var container = document.getElementById("slotsContainer");
+            if (!date) { container.innerHTML = ""; return; }
+            container.innerHTML = '<div class="slots-loading"><span class="spinner"></span></div>';
+
+            try {
+                var res = await fetch("/api/public/availability?slug=" + encodeURIComponent(slug) + "&date=" + date);
+                var data = await res.json();
+
+                if (!data.slots || data.slots.length === 0) {
+                    container.innerHTML = '<div class="slots-empty">Bu tarih için müsait slot yok.</div>';
+                    return;
+                }
+
+                var html = '<div class="slots">';
+                data.slots.forEach(function (s) {
+                    var cls = s.available ? "slot" : "slot taken";
+                    html += '<div class="' + cls + '" data-iso="' + s.startISO + '" onclick="selectSlot(this)">' + s.label + '</div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="slots-empty">Slotlar yüklenemedi.</div>';
+            }
+        }
+
+        function selectSlot(el) {
+            if (el.classList.contains("taken")) return;
+            document.querySelectorAll(".slot.selected").forEach(function (s) { s.classList.remove("selected"); });
+            el.classList.add("selected");
+            selectedSlot = el.getAttribute("data-iso");
+            updateSubmitState();
+        }
+
+        function updateSubmitState() {
+            var name = document.getElementById("nameInput").value.trim();
+            var phone = document.getElementById("phoneInput").value.trim();
+            document.getElementById("submitBtn").disabled = !selectedSlot || !name || !phone;
+        }
+
+        // Live validation on inputs
+        document.getElementById("nameInput").addEventListener("input", updateSubmitState);
+        document.getElementById("phoneInput").addEventListener("input", updateSubmitState);
+
+        async function submitBooking() {
+            var btn = document.getElementById("submitBtn");
+            var msgEl = document.getElementById("formMsg");
+            msgEl.innerHTML = "";
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Gönderiliyor...';
+
+            var body = {
+                slug: slug,
+                name: document.getElementById("nameInput").value.trim(),
+                phone: document.getElementById("phoneInput").value.trim(),
+                service: document.getElementById("serviceInput").value.trim() || null,
+                appointment_date: selectedSlot
+            };
+
+            try {
+                var res = await fetch("/api/public/appointments", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+
+                var data = await res.json();
+
+                if (!res.ok) {
+                    var msg = "Bir hata oluştu.";
+                    if (data.error === "SLOT_TAKEN") msg = "Bu saat dolu. Lütfen başka bir saat seçin.";
+                    else if (data.error === "OUT_OF_HOURS") msg = "Mesai saatleri dışında.";
+                    else if (data.error === "INVALID_SLOT") msg = data.message || "Geçersiz slot.";
+                    else if (data.message) msg = data.message;
+                    msgEl.innerHTML = '<div class="msg error">' + msg + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = "Randevu Oluştur";
+                    if (data.error === "SLOT_TAKEN") loadSlots(document.getElementById("dateInput").value);
+                    return;
+                }
+
+                // Success
+                var dt = new Date(data.appointment_date);
+                var dateStr = dt.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+                var timeStr = dt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+                document.getElementById("successDetails").innerHTML =
+                    '<p><span class="success-detail">👤 ' + body.name + '</span></p>' +
+                    '<p><span class="success-detail">📅 ' + dateStr + ' ' + timeStr + '</span></p>' +
+                    (body.service ? '<p><span class="success-detail">💇 ' + body.service + '</span></p>' : '');
+                show("successView");
+            } catch (e) {
+                msgEl.innerHTML = '<div class="msg error">Bağlantı hatası.</div>';
+                btn.disabled = false;
+                btn.textContent = "Randevu Oluştur";
+            }
+        }
+
+        function resetForm() {
+            selectedSlot = null;
+            document.getElementById("nameInput").value = "";
+            document.getElementById("phoneInput").value = "";
+            document.getElementById("serviceInput").value = "";
+            document.getElementById("formMsg").innerHTML = "";
+            document.getElementById("submitBtn").disabled = true;
+            document.getElementById("submitBtn").textContent = "Randevu Oluştur";
+            show("bookingView");
+            var today = new Date().toISOString().slice(0, 10);
+            document.getElementById("dateInput").value = today;
+            loadSlots(today);
+        }
+    </script>
+</body>
+
+</html>

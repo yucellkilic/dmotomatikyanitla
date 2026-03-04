@@ -4,6 +4,11 @@ const dotenv = require("dotenv");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 const { parseTurkishDate } = require("./dateParser");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // .env dosyasını yükle
 dotenv.config();
@@ -118,6 +123,151 @@ app.get("/", (req, res) => {
 });
 
 // ─── Chat handler (state machine) ───────────────────────────────────
+
+// ─── Public Booking: GET /book/:slug ────────────────────────────────
+app.get("/book/:slug", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "book.html"));
+});
+
+// ─── Public API: Business Info ──────────────────────────────────────
+app.get("/api/public/business/:slug", async (req, res) => {
+    try {
+        const { data: biz, error } = await supabase
+            .from("businesses")
+            .select("id, name, slug")
+            .eq("slug", req.params.slug)
+            .single();
+
+        if (error || !biz) {
+            return res.status(404).json({ error: "İşletme bulunamadı." });
+        }
+
+        const settings = await getBusinessSettings(biz.id);
+        return res.json({ business: biz, settings });
+    } catch (err) {
+        console.error("Public business error:", err.message);
+        return res.status(500).json({ error: "Sunucu hatası." });
+    }
+});
+
+// ─── Public API: Availability ───────────────────────────────────────
+app.get("/api/public/availability", async (req, res) => {
+    try {
+        const { slug, date } = req.query;
+        if (!slug || !date) {
+            return res.status(400).json({ error: "slug ve date parametreleri gerekli." });
+        }
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({ error: "date formatı YYYY-MM-DD olmalı." });
+        }
+
+        const biz = await getBusinessBySlug(slug);
+        if (!biz) return res.status(404).json({ error: "İşletme bulunamadı." });
+
+        const settings = await getBusinessSettings(biz.id);
+        const tz = "Europe/Istanbul";
+
+        const [sH, sM] = settings.working_start.split(":").map(Number);
+        const [eH, eM] = settings.working_end.split(":").map(Number);
+        const startOfDay = dayjs.tz(`${date} ${settings.working_start}`, "YYYY-MM-DD HH:mm", tz);
+        const endOfDay = dayjs.tz(`${date} ${settings.working_end}`, "YYYY-MM-DD HH:mm", tz);
+
+        // Generate all slots
+        const allSlots = [];
+        let cursor = startOfDay;
+        while (cursor.isBefore(endOfDay)) {
+            allSlots.push(cursor.format());
+            cursor = cursor.add(settings.slot_duration, "minute");
+        }
+
+        // Fetch taken appointments for this day
+        const { data: taken } = await supabase
+            .from("appointments")
+            .select("appointment_date")
+            .eq("business_id", biz.id)
+            .gte("appointment_date", startOfDay.toISOString())
+            .lt("appointment_date", endOfDay.toISOString());
+
+        const takenSet = new Set((taken || []).map(a => a.appointment_date));
+
+        const slots = allSlots.map(iso => ({
+            startISO: iso,
+            label: dayjs(iso).tz(tz).format("HH:mm"),
+            available: !takenSet.has(iso),
+        }));
+
+        return res.json({ date, timezone: tz, slots });
+    } catch (err) {
+        console.error("Availability error:", err.message);
+        return res.status(500).json({ error: "Sunucu hatası." });
+    }
+});
+
+// ─── Public API: Create Appointment ─────────────────────────────────
+app.post("/api/public/appointments", async (req, res) => {
+    try {
+        const { slug, name, phone, service, appointment_date } = req.body;
+
+        if (!slug || !name || !phone || !appointment_date) {
+            return res.status(400).json({ error: "MISSING_FIELDS", message: "slug, name, phone, appointment_date zorunlu." });
+        }
+
+        const biz = await getBusinessBySlug(slug);
+        if (!biz) return res.status(404).json({ error: "BUSINESS_NOT_FOUND" });
+
+        const settings = await getBusinessSettings(biz.id);
+
+        // Validate working hours
+        const tz = "Europe/Istanbul";
+        const appt = dayjs(appointment_date).tz(tz);
+        const apptMins = appt.hour() * 60 + appt.minute();
+        const [sH, sM] = settings.working_start.split(":").map(Number);
+        const [eH, eM] = settings.working_end.split(":").map(Number);
+
+        if (apptMins < sH * 60 + sM || apptMins >= eH * 60 + eM) {
+            return res.status(400).json({ error: "OUT_OF_HOURS", message: `Mesai saatleri: ${settings.working_start} - ${settings.working_end}` });
+        }
+
+        // Validate slot alignment
+        if (appt.minute() % settings.slot_duration !== 0) {
+            return res.status(400).json({ error: "INVALID_SLOT", message: `${settings.slot_duration} dakikalık slotlara uygun değil.` });
+        }
+
+        // Conflict check
+        const { data: conflict } = await supabase
+            .from("appointments")
+            .select("id")
+            .eq("business_id", biz.id)
+            .eq("appointment_date", appointment_date)
+            .limit(1);
+
+        if (conflict && conflict.length > 0) {
+            return res.status(409).json({ error: "SLOT_TAKEN", message: "Bu saat dolu." });
+        }
+
+        // Insert
+        const { data, error } = await supabase
+            .from("appointments")
+            .insert([{ name, phone, service: service || null, appointment_date, business_id: biz.id }])
+            .select("id, appointment_date");
+
+        if (error) {
+            if (error.message.includes("unique") || error.message.includes("duplicate")) {
+                return res.status(409).json({ error: "SLOT_TAKEN", message: "Bu saat dolu." });
+            }
+            console.error("Insert error:", error.message);
+            return res.status(500).json({ error: "INSERT_ERROR", message: error.message });
+        }
+
+        return res.status(201).json(data[0]);
+    } catch (err) {
+        console.error("Public appointment error:", err.message);
+        return res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+
 async function handleChat({ userId, message, businessId, res }) {
     if (!message) {
         return res.status(400).json({ error: "message alanı gerekli." });
