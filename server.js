@@ -67,14 +67,20 @@ async function getBusinessBySlug(slug) {
 }
 
 // ─── Supabase: Business Settings ────────────────────────────────
+const SETTINGS_DEFAULTS = {
+    working_start: "09:00", working_end: "18:00", slot_duration: 30,
+    break_start: null, break_end: null, closed_days: [],
+    min_notice_hours: 0, logo_url: null, theme_color: null, contact_whatsapp: null
+};
+
 async function getBusinessSettings(businessId) {
     const { data, error } = await supabase
         .from("business_settings")
-        .select("working_start, working_end, slot_duration")
+        .select("*")
         .eq("business_id", businessId)
         .single();
-    if (error || !data) return { working_start: "09:00", working_end: "18:00", slot_duration: 30 };
-    return data;
+    if (error || !data) return { ...SETTINGS_DEFAULTS };
+    return { ...SETTINGS_DEFAULTS, ...data };
 }
 
 // ─── Supabase: Randevu Kaydet ───────────────────────────────────────
@@ -129,6 +135,68 @@ app.get("/book/:slug", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "book.html"));
 });
 
+// ─── Protected API: Update Business Settings ───────────────────
+app.put("/api/business/:id/settings", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ error: "Yetkilendirme gerekli." });
+        }
+        const token = authHeader.split(" ")[1];
+
+        // Verify user via Supabase Auth
+        const { createClient: createAnonClient } = require("@supabase/supabase-js");
+        const anonSb = createAnonClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: `Bearer ${token}` } }
+        });
+        const { data: { user }, error: authErr } = await anonSb.auth.getUser();
+        if (authErr || !user) {
+            return res.status(401).json({ error: "Geçersiz token." });
+        }
+
+        const businessId = req.params.id;
+
+        // Check membership
+        const { data: member } = await supabase
+            .from("business_members")
+            .select("role")
+            .eq("business_id", businessId)
+            .eq("user_id", user.id)
+            .single();
+        if (!member) {
+            return res.status(403).json({ error: "Bu işletmede yetkiniz yok." });
+        }
+
+        const allowed = ["working_start", "working_end", "slot_duration", "break_start", "break_end",
+            "closed_days", "min_notice_hours", "logo_url", "theme_color", "contact_whatsapp"];
+        const updates = {};
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) updates[key] = req.body[key];
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: "Güncellenecek alan yok." });
+        }
+
+        // Upsert (insert if not exists, update if exists)
+        const { data, error } = await supabase
+            .from("business_settings")
+            .upsert({ business_id: businessId, ...updates }, { onConflict: "business_id" })
+            .select();
+
+        if (error) {
+            console.error("Settings update error:", error.message);
+            return res.status(500).json({ error: error.message });
+        }
+
+        return res.json(data[0]);
+    } catch (err) {
+        console.error("Settings PUT error:", err.message);
+        return res.status(500).json({ error: "Sunucu hatası." });
+    }
+});
+
+
 // ─── Public API: Business Info ──────────────────────────────────────
 app.get("/api/public/business/:slug", async (req, res) => {
     try {
@@ -168,20 +236,47 @@ app.get("/api/public/availability", async (req, res) => {
         const settings = await getBusinessSettings(biz.id);
         const tz = "Europe/Istanbul";
 
-        const [sH, sM] = settings.working_start.split(":").map(Number);
-        const [eH, eM] = settings.working_end.split(":").map(Number);
+        // Closed days check (0=Pazar, 6=Cumartesi)
+        const requestedDay = dayjs.tz(date, "YYYY-MM-DD", tz).day();
+        if (settings.closed_days && settings.closed_days.includes(requestedDay)) {
+            return res.json({ date, timezone: tz, closed: true, slots: [] });
+        }
+
         const startOfDay = dayjs.tz(`${date} ${settings.working_start}`, "YYYY-MM-DD HH:mm", tz);
         const endOfDay = dayjs.tz(`${date} ${settings.working_end}`, "YYYY-MM-DD HH:mm", tz);
 
-        // Generate all slots
+        // Break time boundaries
+        let breakStart = null, breakEnd = null;
+        if (settings.break_start && settings.break_end) {
+            breakStart = dayjs.tz(`${date} ${settings.break_start}`, "YYYY-MM-DD HH:mm", tz);
+            breakEnd = dayjs.tz(`${date} ${settings.break_end}`, "YYYY-MM-DD HH:mm", tz);
+        }
+
+        // Min notice cutoff
+        const now = dayjs().tz(tz);
+        const noticeCutoff = (settings.min_notice_hours && settings.min_notice_hours > 0)
+            ? now.add(settings.min_notice_hours, "hour")
+            : null;
+
+        // Generate slots
         const allSlots = [];
         let cursor = startOfDay;
         while (cursor.isBefore(endOfDay)) {
-            allSlots.push(cursor.format());
+            const iso = cursor.format();
+            let skip = false;
+            // Skip break slots
+            if (breakStart && breakEnd && !cursor.isBefore(breakStart) && cursor.isBefore(breakEnd)) {
+                skip = true;
+            }
+            // Skip past notice cutoff
+            if (noticeCutoff && cursor.isBefore(noticeCutoff)) {
+                skip = true;
+            }
+            if (!skip) allSlots.push(iso);
             cursor = cursor.add(settings.slot_duration, "minute");
         }
 
-        // Fetch taken appointments for this day
+        // Fetch taken appointments
         const { data: taken } = await supabase
             .from("appointments")
             .select("appointment_date")
@@ -197,7 +292,7 @@ app.get("/api/public/availability", async (req, res) => {
             available: !takenSet.has(iso),
         }));
 
-        return res.json({ date, timezone: tz, slots });
+        return res.json({ date, timezone: tz, closed: false, slots });
     } catch (err) {
         console.error("Availability error:", err.message);
         return res.status(500).json({ error: "Sunucu hatası." });
