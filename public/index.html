@@ -2,682 +2,557 @@
 <html lang="tr">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>DM Otomasyon — Asistan</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
-    :root {
-      --bg: #0f0f13;
-      --surface: #18181f;
-      --surface-2: #222230;
-      --border: #2a2a3a;
-      --accent: #a78bfa;
-      --accent-glow: rgba(167, 139, 250, .25);
-      --accent-dark: #7c5cbf;
-      --user-bubble: #312e81;
-      --bot-bubble: #1e1e2e;
-      --text: #e4e4ed;
-      --text-dim: #9292a8;
-      --radius: 16px;
-      --transition: .25s cubic-bezier(.4, 0, .2, 1);
-    }
-
-    html {
-      height: 100%;
-      -webkit-text-size-adjust: 100%
-    }
-
-    body {
-      height: 100%;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Layout ─────────────────────────────────── */
-    .app {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      background: var(--surface);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Masaüstünde kenarlık */
-    @media(min-width:601px) {
-      .app {
-        border-left: 1px solid var(--border);
-        border-right: 1px solid var(--border);
-        box-shadow: 0 0 60px rgba(0, 0, 0, .5);
-      }
-    }
-
-    /* ── Header ─────────────────────────────────── */
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      min-height: 72px;
-    }
-
-    .header-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #6d28d9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      box-shadow: 0 0 18px var(--accent-glow);
-      flex-shrink: 0;
-    }
-
-    .header-info {
-      min-width: 0;
-      flex: 1
-    }
-
-    .header-info h1 {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -.3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .header-info p {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-top: 2px;
-      display: flex;
-      align-items: center;
-      gap: 5px
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #34d399;
-      display: inline-block;
-      animation: pulse 2s infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .4
-      }
-    }
-
-    /* ── Messages ───────────────────────────────── */
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .messages::-webkit-scrollbar {
-      width: 4px
-    }
-
-    .messages::-webkit-scrollbar-track {
-      background: transparent
-    }
-
-    .messages::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 10px
-    }
-
-    .msg {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: var(--radius);
-      font-size: 14px;
-      line-height: 1.55;
-      animation: fadeUp .3s var(--transition) both;
-      position: relative;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-    }
-
-    @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(8px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0)
-      }
-    }
-
-    .msg.bot {
-      align-self: flex-start;
-      background: var(--bot-bubble);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-    }
-
-    .msg.user {
-      align-self: flex-end;
-      background: linear-gradient(135deg, var(--user-bubble), var(--accent-dark));
-      border-bottom-right-radius: 4px;
-      color: #fff;
-    }
-
-    .msg-time {
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 5px;
-      opacity: .7
-    }
-
-    .msg.user .msg-time {
-      text-align: right;
-      color: rgba(255, 255, 255, .5)
-    }
-
-    /* typing indicator */
-    .typing {
-      display: flex;
-      gap: 5px;
-      padding: 12px 18px;
-      align-self: flex-start
-    }
-
-    .typing span {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-dim);
-      animation: bounce .6s infinite alternate;
-    }
-
-    .typing span:nth-child(2) {
-      animation-delay: .15s
-    }
-
-    .typing span:nth-child(3) {
-      animation-delay: .3s
-    }
-
-    @keyframes bounce {
-      to {
-        transform: translateY(-5px);
-        opacity: .4
-      }
-    }
-
-    /* ── Input Bar ──────────────────────────────── */
-    .input-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      background: var(--surface-2);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .input-bar input {
-      flex: 1;
-      min-width: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 16px;
-      color: var(--text);
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border var(--transition), box-shadow var(--transition);
-      -webkit-appearance: none;
-    }
-
-    .input-bar input::placeholder {
-      color: var(--text-dim)
-    }
-
-    .input-bar input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow)
-    }
-
-    .send-btn {
-      width: 46px;
-      height: 46px;
-      border-radius: 13px;
-      border: none;
-      background: linear-gradient(135deg, var(--accent), #6d28d9);
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform var(--transition), box-shadow var(--transition);
-      flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .send-btn:hover {
-      transform: scale(1.07);
-      box-shadow: 0 0 20px var(--accent-glow)
-    }
-
-    .send-btn:active {
-      transform: scale(.93)
-    }
-
-    .send-btn:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none
-    }
-
-    .send-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor
-    }
-
-    /* ── Welcome ────────────────────────────────── */
-    .welcome {
-      text-align: center;
-      padding: 24px 16px 8px;
-      animation: fadeUp .5s var(--transition) both;
-    }
-
-    .welcome h2 {
-      font-size: 17px;
-      font-weight: 600;
-      margin-bottom: 6px
-    }
-
-    .welcome p {
-      font-size: 13px;
-      color: var(--text-dim);
-      line-height: 1.5
-    }
-
-    .quick-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 14px;
-    }
-
-    .quick-btn {
-      padding: 9px 16px;
-      border-radius: 20px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--accent);
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all var(--transition);
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .quick-btn:hover,
-    .quick-btn:active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent)
-    }
-
-    /* ── Safe area (notch, home bar) ────────────── */
-    @supports(padding-bottom:env(safe-area-inset-bottom)) {
-      .input-bar {
-        padding-bottom: calc(12px + env(safe-area-inset-bottom))
-      }
-
-      .header {
-        padding-top: calc(16px + env(safe-area-inset-top))
-      }
-    }
-
-    /* ── Small phones (≤380px) ──────────────────── */
-    @media(max-width:380px) {
-      .header {
-        padding: 12px 14px;
-        gap: 10px;
-        min-height: 62px
-      }
-
-      .header-avatar {
-        width: 38px;
-        height: 38px;
-        font-size: 15px
-      }
-
-      .header-info h1 {
-        font-size: 14px
-      }
-
-      .messages {
-        padding: 14px 12px;
-        gap: 10px
-      }
-
-      .msg {
-        font-size: 13px;
-        padding: 10px 14px;
-        max-width: 88%
-      }
-
-      .input-bar {
-        padding: 10px 10px;
-        gap: 8px
-      }
-
-      .input-bar input {
-        padding: 10px 14px;
-        font-size: 14px;
-        border-radius: 10px
-      }
-
-      .send-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 11px
-      }
-
-      .welcome h2 {
-        font-size: 15px
-      }
-
-      .welcome p {
-        font-size: 12px
-      }
-
-      .quick-btn {
-        font-size: 12px;
-        padding: 7px 12px
-      }
-    }
-
-    /* ── Regular phones (381–600px) ─────────────── */
-    @media(min-width:381px) and (max-width:600px) {
-      .messages {
-        padding: 18px 14px
-      }
-
-      .msg {
-        max-width: 86%
-      }
-    }
-
-    /* ── Tablet (601–900px) ─────────────────────── */
-    @media(min-width:601px) and (max-width:900px) {
-      .app {
-        max-width: 520px
-      }
-
-      .msg {
-        max-width: 80%;
-        font-size: 14.5px
-      }
-    }
-
-    /* ── Desktop (>900px) ──────────────────────── */
-    @media(min-width:901px) {
-      .app {
-        max-width: 560px
-      }
-
-      .header {
-        padding: 18px 24px
-      }
-
-      .messages {
-        padding: 24px 22px;
-        gap: 14px
-      }
-
-      .msg {
-        max-width: 78%;
-        padding: 14px 18px;
-        font-size: 15px
-      }
-
-      .input-bar {
-        padding: 14px 18px
-      }
-
-      .input-bar input {
-        padding: 14px 18px;
-        font-size: 15px
-      }
-
-      .send-btn {
-        width: 50px;
-        height: 50px;
-        border-radius: 14px
-      }
-    }
-
-    /* ── Landscape phone fix ───────────────────── */
-    @media(max-height:450px) and (orientation:landscape) {
-      .header {
-        padding: 8px 14px;
-        min-height: 50px
-      }
-
-      .header-avatar {
-        width: 34px;
-        height: 34px;
-        font-size: 14px
-      }
-
-      .header-info h1 {
-        font-size: 13px
-      }
-
-      .header-info p {
-        font-size: 10px
-      }
-
-      .messages {
-        padding: 10px 12px;
-        gap: 8px
-      }
-
-      .msg {
-        padding: 8px 12px;
-        font-size: 13px
-      }
-
-      .input-bar {
-        padding: 8px 10px
-      }
-
-      .input-bar input {
-        padding: 8px 12px;
-        font-size: 13px
-      }
-
-      .send-btn {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px
-      }
-
-      .welcome {
-        padding: 10px 12px 4px
-      }
-
-      .welcome h2 {
-        font-size: 14px
-      }
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DM Otomasyon — Randevu Yönetim Platformu</title>
+    <meta name="description"
+        content="İşletmeniz için 7/24 online randevu sistemi. Chatbot, takvim, müşteri yönetimi tek platformda." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #08080d;
+            --surface: #111118;
+            --surface-2: #1a1a24;
+            --surface-3: #22222f;
+            --border: #2a2a3d;
+            --accent: #a78bfa;
+            --accent-dark: #6d28d9;
+            --accent-glow: rgba(167, 139, 250, .15);
+            --success: #34d399;
+            --danger: #f87171;
+            --text: #eaeaf2;
+            --text-dim: #8888a4;
+            --text-muted: #5c5c78;
+            --radius: 12px;
+            --radius-lg: 16px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text)
+        }
+
+        /* ── Layout ── */
+        .page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            max-width: 1040px;
+            width: 100%;
+            align-items: center
+        }
+
+        @media (max-width: 820px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 32px;
+                max-width: 460px
+            }
+
+            .hero {
+                text-align: center
+            }
+
+            .features {
+                justify-content: center
+            }
+        }
+
+        /* ── Hero (Left) ── */
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 50px;
+            background: var(--accent-glow);
+            border: 1px solid rgba(167, 139, 250, .2);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px
+        }
+
+        .hero h1 {
+            font-size: 40px;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 30%, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 28px;
+            max-width: 420px
+        }
+
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-dim)
+        }
+
+        .feature .icon {
+            font-size: 16px
+        }
+
+        /* ── Auth Card ── */
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, .4)
+        }
+
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--surface-2);
+            border-radius: 10px;
+            padding: 4px
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .auth-tab.active {
+            background: var(--accent-dark);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(109, 40, 217, .3)
+        }
+
+        /* Form */
+        .auth-form {
+            display: none
+        }
+
+        .auth-form.active {
+            display: block;
+            animation: fadeIn .3s ease both
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .form-group {
+            margin-bottom: 14px
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border .2s
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent)
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted)
+        }
+
+        .slug-preview {
+            margin-top: 5px;
+            font-size: 11px;
+            color: var(--text-muted);
+            word-break: break-all
+        }
+
+        .slug-preview span {
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 0
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            margin-top: 6px
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow)
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .msg {
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 12px
+        }
+
+        .msg.error {
+            background: rgba(248, 113, 113, .12);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, .25)
+        }
+
+        .msg.success {
+            background: rgba(52, 211, 153, .1);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 12px;
+            color: var(--text-muted)
+        }
+
+        .footer-note a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600
+        }
+
+        .hidden {
+            display: none !important
+        }
+    </style>
 </head>
 
 <body>
+    <div class="page">
+        <div class="container">
+            <!-- ═══ LEFT: Hero ═══ -->
+            <div class="hero">
+                <div class="hero-badge">🚀 Yeni nesil randevu yönetimi</div>
+                <h1>Randevularınızı Otomatize Edin</h1>
+                <p>Müşterileriniz 7/24 online randevu alsın. Chatbot, takvim ve müşteri yönetimi tek platformda, kolay
+                    kurulum.</p>
+                <div class="features">
+                    <div class="feature"><span class="icon">🤖</span> AI Chatbot</div>
+                    <div class="feature"><span class="icon">📅</span> Takvim</div>
+                    <div class="feature"><span class="icon">🌐</span> Online Booking</div>
+                    <div class="feature"><span class="icon">⚡</span> Anında Kurulum</div>
+                    <div class="feature"><span class="icon">🔒</span> Güvenli</div>
+                    <div class="feature"><span class="icon">📱</span> Mobil Uyumlu</div>
+                </div>
+            </div>
 
-  <div class="app">
+            <!-- ═══ RIGHT: Auth Card ═══ -->
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchTab('login')">Giriş Yap</button>
+                    <button class="auth-tab" onclick="switchTab('register')">Kayıt Ol</button>
+                </div>
 
-    <!-- Header -->
-    <div class="header">
-      <div class="header-avatar">DM</div>
-      <div class="header-info">
-        <h1>DM Otomasyon Asistan</h1>
-        <p><span class="status-dot"></span> Çevrimiçi — hızlı yanıt</p>
-      </div>
-    </div>
+                <!-- Login Form -->
+                <div class="auth-form active" id="loginForm">
+                    <div class="form-group">
+                        <label>E-posta</label>
+                        <input type="email" id="loginEmail" placeholder="ornek@email.com" autocomplete="email" />
+                    </div>
+                    <div class="form-group">
+                        <label>Şifre</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••"
+                            autocomplete="current-password" />
+                    </div>
+                    <button class="btn" id="loginBtn" onclick="handleLogin()">Giriş Yap</button>
+                    <div id="loginMsg"></div>
+                </div>
 
-    <!-- Messages -->
-    <div class="messages" id="messages">
-      <div class="welcome">
-        <h2>Hoş geldiniz! 👋</h2>
-        <p>Size lazer epilasyon hizmetlerimiz hakkında yardımcı olabilirim.<br>Fiyat bilgisi almak veya randevu
-          oluşturmak için yazın.</p>
-        <div class="quick-actions">
-          <button class="quick-btn" onclick="sendQuick('Fiyat bilgisi almak istiyorum')">💰 Fiyat Bilgisi</button>
-          <button class="quick-btn" onclick="sendQuick('Randevu almak istiyorum')">📅 Randevu Al</button>
+                <!-- Register Form -->
+                <div class="auth-form" id="registerForm">
+                    <div class="form-group">
+                        <label>İşletme Adı</label>
+                        <input type="text" id="regBizName" placeholder="Örn: Kuaför Ayşe" oninput="generateSlug()" />
+                    </div>
+                    <div class="form-group">
+                        <label>İşletme Linki (Slug)</label>
+                        <input type="text" id="regSlug" placeholder="kuafor-ayse" oninput="updatePreview()" />
+                        <div class="slug-preview" id="slugPreview"></div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="form-group">
+                        <label>E-posta</label>
+                        <input type="email" id="regEmail" placeholder="ornek@email.com" autocomplete="email" />
+                    </div>
+                    <div class="form-group">
+                        <label>Şifre</label>
+                        <input type="password" id="regPassword" placeholder="En az 6 karakter"
+                            autocomplete="new-password" />
+                    </div>
+                    <button class="btn" id="regBtn" onclick="handleRegister()">Kayıt Ol</button>
+                    <div id="regMsg"></div>
+                </div>
+
+                <div class="footer-note">
+                    <a href="/demo">Chatbot Demoyu Dene →</a>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Input Bar -->
-    <div class="input-bar">
-      <input type="text" id="msgInput" placeholder="Mesajınızı yazın..." autocomplete="off" />
-      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-        <svg viewBox="0 0 24 24">
-          <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
-        </svg>
-      </button>
-    </div>
+    <script>
+        var sb = null;
 
-  </div>
+        // ─── Init Supabase ────────────────────
+        (async function () {
+            try {
+                var res = await fetch("/api/config");
+                var config = await res.json();
+                sb = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-  <script>
-    const messagesEl = document.getElementById("messages");
-    const msgInput = document.getElementById("msgInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const userId = "user_" + Math.random().toString(36).slice(2, 9);
+                // Auto redirect if already logged in
+                var { data: { session } } = await sb.auth.getSession();
+                if (session) {
+                    window.location.href = "/admin";
+                }
+            } catch (e) {
+                console.error("Config yüklenemedi:", e);
+            }
 
-    // Enter ile gönder
-    msgInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    });
+            // Check URL for tab hint
+            if (window.location.pathname === "/register" || window.location.hash === "#register") {
+                switchTab("register");
+            }
+        })();
 
-    // Mobilde klavye açılınca scroll düzelt
-    if ("visualViewport" in window) {
-      window.visualViewport.addEventListener("resize", () => {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      });
-    }
+        // ─── Tab Switch ───────────────────────
+        function switchTab(tab) {
+            document.querySelectorAll(".auth-tab").forEach(function (t, i) {
+                t.classList.toggle("active", (tab === "login" && i === 0) || (tab === "register" && i === 1));
+            });
+            document.getElementById("loginForm").classList.toggle("active", tab === "login");
+            document.getElementById("registerForm").classList.toggle("active", tab === "register");
+        }
 
-    // Hızlı buton
-    function sendQuick(text) {
-      msgInput.value = text;
-      sendMessage();
-    }
+        // ─── Login ────────────────────────────
+        async function handleLogin() {
+            var btn = document.getElementById("loginBtn");
+            var msgEl = document.getElementById("loginMsg");
+            msgEl.innerHTML = "";
 
-    // Zaman damgası
-    function timeStamp() {
-      return new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-    }
+            var email = document.getElementById("loginEmail").value.trim();
+            var password = document.getElementById("loginPassword").value;
 
-    // Mesaj baloncuğu ekle
-    function addBubble(text, type) {
-      const welcome = messagesEl.querySelector(".welcome");
-      if (welcome) welcome.remove();
+            if (!email || !password) {
+                msgEl.innerHTML = '<div class="msg error">E-posta ve şifre gerekli.</div>';
+                return;
+            }
 
-      const div = document.createElement("div");
-      div.className = "msg " + type;
-      div.innerHTML = text.replace(/\n/g, "<br>") + '<div class="msg-time">' + timeStamp() + "</div>";
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Giriş yapılıyor...';
 
-    // Typing göstergesi
-    function showTyping() {
-      const div = document.createElement("div");
-      div.className = "typing";
-      div.id = "typing";
-      div.innerHTML = "<span></span><span></span><span></span>";
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-    function hideTyping() {
-      const el = document.getElementById("typing");
-      if (el) el.remove();
-    }
+            try {
+                var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
+                if (error) {
+                    msgEl.innerHTML = '<div class="msg error">' + error.message + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = "Giriş Yap";
+                    return;
+                }
+                window.location.href = "/admin";
+            } catch (e) {
+                msgEl.innerHTML = '<div class="msg error">Bağlantı hatası.</div>';
+                btn.disabled = false;
+                btn.textContent = "Giriş Yap";
+            }
+        }
 
-    // Mesaj gönder
-    async function sendMessage() {
-      const text = msgInput.value.trim();
-      if (!text) return;
+        // ─── Register: Slug Generation ────────
+        var trMap = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
 
-      addBubble(text, "user");
-      msgInput.value = "";
-      sendBtn.disabled = true;
-      showTyping();
+        function toSlug(text) {
+            var result = '';
+            for (var i = 0; i < text.length; i++) {
+                result += trMap[text[i]] || text[i];
+            }
+            return result.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        }
 
-      try {
-        const res = await fetch("/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, message: text }),
-        });
-        const data = await res.json();
-        hideTyping();
-        addBubble(data.reply, "bot");
-      } catch (err) {
-        hideTyping();
-        addBubble("Bağlantı hatası. Lütfen tekrar deneyin.", "bot");
-      }
+        function generateSlug() {
+            var slug = toSlug(document.getElementById('regBizName').value);
+            document.getElementById('regSlug').value = slug;
+            updatePreview();
+        }
 
-      sendBtn.disabled = false;
-      msgInput.focus();
-    }
-  </script>
+        function updatePreview() {
+            var slug = toSlug(document.getElementById('regSlug').value);
+            document.getElementById('regSlug').value = slug;
+            var el = document.getElementById('slugPreview');
+            el.innerHTML = slug ? 'Randevu linkiniz: <span>' + window.location.origin + '/book/' + slug + '</span>' : '';
+        }
 
+        // ─── Register: Submit ─────────────────
+        async function handleRegister() {
+            var btn = document.getElementById("regBtn");
+            var msgEl = document.getElementById("regMsg");
+            msgEl.innerHTML = "";
+
+            var businessName = document.getElementById("regBizName").value.trim();
+            var slug = document.getElementById("regSlug").value.trim();
+            var email = document.getElementById("regEmail").value.trim();
+            var password = document.getElementById("regPassword").value;
+
+            if (!businessName || !slug || !email || !password) {
+                msgEl.innerHTML = '<div class="msg error">Tüm alanları doldurun.</div>';
+                return;
+            }
+            if (password.length < 6) {
+                msgEl.innerHTML = '<div class="msg error">Şifre en az 6 karakter olmalıdır.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Kaydediliyor...';
+
+            try {
+                var res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password, businessName: businessName, slug: slug })
+                });
+                var data = await res.json();
+
+                if (!res.ok) {
+                    msgEl.innerHTML = '<div class="msg error">' + (data.error || 'Bir hata oluştu.') + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = 'Kayıt Ol';
+                    return;
+                }
+
+                msgEl.innerHTML = '<div class="msg success">🎉 Kayıt başarılı! Otomatik giriş yapılıyor...</div>';
+
+                // Auto-login after registration
+                var { error: loginErr } = await sb.auth.signInWithPassword({ email: email, password: password });
+                if (!loginErr) {
+                    setTimeout(function () { window.location.href = "/admin"; }, 1000);
+                } else {
+                    msgEl.innerHTML = '<div class="msg success">🎉 Kayıt başarılı! Giriş Yap sekmesinden giriş yapabilirsiniz.</div>';
+                    btn.textContent = '✅ Kayıt Tamamlandı';
+                    setTimeout(function () { switchTab("login"); }, 2000);
+                }
+            } catch (e) {
+                msgEl.innerHTML = '<div class="msg error">Bağlantı hatası.</div>';
+                btn.disabled = false;
+                btn.textContent = 'Kayıt Ol';
+            }
+        }
+    </script>
 </body>
 
 </html>

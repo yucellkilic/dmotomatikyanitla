@@ -950,24 +950,10 @@
 
   <div class="app" id="app">
 
-    <!-- ═══ LOGIN SECTION ═══ -->
-    <div id="loginSection" class="card">
-      <h2>🔐 Admin Giriş</h2>
-      <p class="subtitle">İşletme panelinize erişin</p>
-      <div class="form-group">
-        <label>E-posta</label>
-        <input type="email" id="loginEmail" placeholder="ornek@email.com" autocomplete="email" />
-      </div>
-      <div class="form-group">
-        <label>Şifre</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
-      </div>
-      <button class="btn btn-primary login-btn" id="loginBtn" onclick="handleLogin()">Giriş Yap</button>
-      <div class="error-msg" id="loginError"></div>
-      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-dim)">
-        Hesabın yok mu? <a href="/register" style="color:var(--accent);font-weight:600;text-decoration:none">Kayıt
-          Ol</a>
-      </div>
+    <!-- ═══ LOADING ═══ -->
+    <div id="loginSection" class="card" style="text-align:center;padding:48px">
+      <span class="spinner"></span>
+      <p style="margin-top:12px;color:var(--text-dim);font-size:13px">Oturum kontrol ediliyor...</p>
     </div>
 
     <!-- ═══ DASHBOARD SECTION ═══ -->
@@ -1146,62 +1132,23 @@
         var config = await res.json();
         sb = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
-        // Check existing session
+        // Auth guard: redirect to landing if no session
         var { data: { session } } = await sb.auth.getSession();
         if (session) {
           showDashboard(session.user);
+        } else {
+          window.location.href = "/";
         }
       } catch (err) {
         console.error("Config yüklenemedi:", err);
+        window.location.href = "/";
       }
-    }
-
-    // ─── Auth ──────────────────────────────────────────────
-    async function handleLogin() {
-      var email = document.getElementById("loginEmail").value.trim();
-      var password = document.getElementById("loginPassword").value;
-      var errorEl = document.getElementById("loginError");
-      var btn = document.getElementById("loginBtn");
-
-      if (!email || !password) {
-        errorEl.textContent = "E-posta ve şifre gerekli.";
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Giriş yapılıyor...';
-      errorEl.textContent = "";
-
-      var { data, error } = await sb.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        errorEl.textContent = error.message === "Invalid login credentials"
-          ? "E-posta veya şifre hatalı."
-          : error.message;
-        btn.disabled = false;
-        btn.textContent = "Giriş Yap";
-        return;
-      }
-
-      showDashboard(data.user);
     }
 
     async function handleLogout() {
       await sb.auth.signOut();
-      document.getElementById("loginSection").classList.remove("hidden");
-      document.getElementById("dashboardSection").classList.add("hidden");
-      document.getElementById("loginPassword").value = "";
-      document.getElementById("loginError").textContent = "";
-      document.getElementById("loginBtn").disabled = false;
-      document.getElementById("loginBtn").textContent = "Giriş Yap";
+      window.location.href = "/";
     }
-
-    // Enter key for login
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !document.getElementById("loginSection").classList.contains("hidden")) {
-        handleLogin();
-      }
-    });
 
     // ─── Dashboard ─────────────────────────────────────────
     async function showDashboard(user) {

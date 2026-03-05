@@ -119,18 +119,14 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// Ana endpoint
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        message: "DM Otomasyon API çalışıyor!",
-        timestamp: new Date().toISOString(),
-    });
+// Chatbot demo sayfası (eski index.html)
+app.get("/demo", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "chatbot-demo.html"));
 });
 
-// Register sayfası
+// Register sayfası (backward compat)
 app.get("/register", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "register.html"));
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ─── Public API: Register (Onboarding) ─────────────────────────────
