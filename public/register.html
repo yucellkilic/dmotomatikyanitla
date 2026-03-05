@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Kayıt Ol — DM Otomasyon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0b0b10;
+            --surface: #13131a;
+            --surface-2: #1c1c28;
+            --border: #2e2e42;
+            --accent: #a78bfa;
+            --accent-hover: #c4b5fd;
+            --accent-glow: rgba(167, 139, 250, .18);
+            --success: #34d399;
+            --danger: #f87171;
+            --text: #e8e8f0;
+            --text-dim: #8888a4;
+            --text-muted: #5c5c78;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --transition: .2s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text)
+        }
+
+        .app {
+            max-width: 460px;
+            margin: 0 auto;
+            padding: 40px 16px 40px
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            animation: fadeIn .4s ease both
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 24px
+        }
+
+        .logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 14px
+        }
+
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px
+        }
+
+        .page-header p {
+            color: var(--text-dim);
+            font-size: 13px
+        }
+
+        .form-group {
+            margin-bottom: 16px
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border var(--transition)
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent)
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted)
+        }
+
+        .slug-preview {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            word-break: break-all
+        }
+
+        .slug-preview span {
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 8px
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow)
+        }
+
+        .btn-submit:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .msg {
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 14px;
+            animation: fadeIn .3s ease both
+        }
+
+        .msg.error {
+            background: rgba(248, 113, 113, .12);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, .25)
+        }
+
+        .msg.success {
+            background: rgba(52, 211, 153, .1);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-dim)
+        }
+
+        .login-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600
+        }
+
+        .login-link a:hover {
+            text-decoration: underline
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="card">
+            <div class="page-header">
+                <div class="logo">DM</div>
+                <h1>İşletmeni Kaydet</h1>
+                <p>Birkaç adımda randevu sistemini başlat</p>
+            </div>
+
+            <div class="form-group">
+                <label>E-posta</label>
+                <input type="email" id="emailInput" placeholder="ornek@email.com" autocomplete="email" />
+            </div>
+
+            <div class="form-group">
+                <label>Şifre</label>
+                <input type="password" id="passwordInput" placeholder="En az 6 karakter" autocomplete="new-password" />
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-group">
+                <label>İşletme Adı</label>
+                <input type="text" id="businessNameInput" placeholder="Örn: Kuaför Ayşe" oninput="generateSlug()" />
+            </div>
+
+            <div class="form-group">
+                <label>İşletme Linki (Slug)</label>
+                <input type="text" id="slugInput" placeholder="kuafor-ayse" oninput="updatePreview()" />
+                <div class="slug-preview" id="slugPreview"></div>
+            </div>
+
+            <button class="btn-submit" id="submitBtn" onclick="handleRegister()">Kayıt Ol</button>
+            <div id="formMsg"></div>
+
+            <div class="login-link">
+                Zaten hesabın var mı? <a href="/admin">Giriş Yap</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Turkish character map
+        var trMap = {
+            'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+            'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u'
+        };
+
+        function toSlug(text) {
+            var result = '';
+            for (var i = 0; i < text.length; i++) {
+                var ch = text[i];
+                result += trMap[ch] || ch;
+            }
+            return result
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+        }
+
+        function generateSlug() {
+            var name = document.getElementById('businessNameInput').value;
+            var slug = toSlug(name);
+            document.getElementById('slugInput').value = slug;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            var slug = document.getElementById('slugInput').value;
+            var clean = toSlug(slug);
+            document.getElementById('slugInput').value = clean;
+            var el = document.getElementById('slugPreview');
+            if (clean) {
+                el.innerHTML = 'Randevu linkiniz: <span>' + window.location.origin + '/book/' + clean + '</span>';
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        async function handleRegister() {
+            var btn = document.getElementById('submitBtn');
+            var msgEl = document.getElementById('formMsg');
+            msgEl.innerHTML = '';
+
+            var email = document.getElementById('emailInput').value.trim();
+            var password = document.getElementById('passwordInput').value;
+            var businessName = document.getElementById('businessNameInput').value.trim();
+            var slug = document.getElementById('slugInput').value.trim();
+
+            if (!email || !password || !businessName || !slug) {
+                msgEl.innerHTML = '<div class="msg error">Tüm alanları doldurun.</div>';
+                return;
+            }
+
+            if (password.length < 6) {
+                msgEl.innerHTML = '<div class="msg error">Şifre en az 6 karakter olmalıdır.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Kaydediliyor...';
+
+            try {
+                var res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password, businessName: businessName, slug: slug })
+                });
+
+                var data = await res.json();
+
+                if (!res.ok) {
+                    msgEl.innerHTML = '<div class="msg error">' + (data.error || 'Bir hata oluştu.') + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = 'Kayıt Ol';
+                    return;
+                }
+
+                msgEl.innerHTML = '<div class="msg success">🎉 Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...</div>';
+                btn.textContent = '✅ Kayıt Tamamlandı';
+
+                setTimeout(function () {
+                    window.location.href = '/admin';
+                }, 2000);
+            } catch (e) {
+                msgEl.innerHTML = '<div class="msg error">Bağlantı hatası.</div>';
+                btn.disabled = false;
+                btn.textContent = 'Kayıt Ol';
+            }
+        }
+    </script>
+</body>
+
+</html>

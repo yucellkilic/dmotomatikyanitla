@@ -128,6 +128,101 @@ app.get("/", (req, res) => {
     });
 });
 
+// Register sayfası
+app.get("/register", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "register.html"));
+});
+
+// ─── Public API: Register (Onboarding) ─────────────────────────────
+app.post("/api/register", async (req, res) => {
+    try {
+        const { email, password, businessName, slug } = req.body;
+
+        if (!email || !password || !businessName || !slug) {
+            return res.status(400).json({ error: "Tüm alanlar zorunludur." });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ error: "Şifre en az 6 karakter olmalıdır." });
+        }
+
+        // Slug format check
+        const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+        if (!cleanSlug || cleanSlug.length < 2) {
+            return res.status(400).json({ error: "Geçersiz işletme linki." });
+        }
+
+        // Check if slug is taken
+        const { data: existing } = await supabase
+            .from("businesses")
+            .select("id")
+            .eq("slug", cleanSlug)
+            .maybeSingle();
+
+        if (existing) {
+            return res.status(400).json({ error: "Bu link zaten kullanılıyor." });
+        }
+
+        // 1. Create auth user
+        const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+        });
+
+        if (authErr) {
+            if (authErr.message.includes("already") || authErr.message.includes("exists")) {
+                return res.status(400).json({ error: "Bu e-posta adresi zaten kayıtlı." });
+            }
+            console.error("Auth createUser error:", authErr.message);
+            return res.status(500).json({ error: "Kullanıcı oluşturulamadı." });
+        }
+
+        const userId = authData.user.id;
+
+        // 2. Create business
+        const { data: bizData, error: bizErr } = await supabase
+            .from("businesses")
+            .insert([{ name: businessName, slug: cleanSlug }])
+            .select("id")
+            .single();
+
+        if (bizErr) {
+            console.error("Business insert error:", bizErr.message);
+            // Cleanup: delete created user
+            await supabase.auth.admin.deleteUser(userId);
+            return res.status(500).json({ error: "İşletme oluşturulamadı." });
+        }
+
+        const businessId = bizData.id;
+
+        // 3. Create business_members
+        const { error: memberErr } = await supabase
+            .from("business_members")
+            .insert([{ business_id: businessId, user_id: userId, role: "admin" }]);
+
+        if (memberErr) {
+            console.error("Member insert error:", memberErr.message);
+        }
+
+        // 4. Create default business_settings
+        const { error: settingsErr } = await supabase
+            .from("business_settings")
+            .insert([{ business_id: businessId }]);
+
+        if (settingsErr) {
+            console.error("Settings insert error:", settingsErr.message);
+        }
+
+        console.log(`✅ Yeni kayıt: ${email} → ${businessName} (${cleanSlug})`);
+        return res.status(201).json({ message: "Kayıt başarılı!", slug: cleanSlug });
+    } catch (err) {
+        console.error("Register error:", err.message);
+        return res.status(500).json({ error: "Sunucu hatası." });
+    }
+});
+
+
 // ─── Chat handler (state machine) ───────────────────────────────────
 
 // ─── Public Booking: GET /book/:slug ────────────────────────────────
