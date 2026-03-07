@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/css/intlTelInput.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.6.0/build/css/intlTelInput.min.css" />
     <style>
         *,
         *::before,
@@ -409,28 +409,32 @@
             width: 100%
         }
 
+        .iti__dropdown-content {
+            background: var(--surface-2) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text)
+        }
+
         .iti__country-list {
             background: var(--surface-2);
-            border: 1px solid var(--border);
             color: var(--text);
             max-height: 200px;
             scrollbar-width: thin
         }
 
-        .iti__country-list .iti__country:hover,
-        .iti__country-list .iti__country--highlight {
-            background: var(--surface-3)
+        .iti__country.iti__highlight {
+            background: var(--surface-3) !important
         }
 
-        .iti__country-list .iti__divider {
-            border-bottom: 1px solid var(--border)
+        .iti__country:hover {
+            background: var(--surface-3) !important
         }
 
-        .iti__country-list .iti__dial-code {
-            color: var(--text-dim)
+        .iti__dial-code {
+            color: var(--text-dim) !important
         }
 
-        .iti__selected-country {
+        .iti__selected-country-primary {
             background: transparent !important
         }
 
@@ -439,17 +443,21 @@
         }
 
         .iti__arrow {
-            border-top-color: var(--text-dim)
+            border-top-color: var(--text-dim) !important
         }
 
         .iti__search-input {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 6px 10px;
+            background: var(--surface) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            padding: 8px 10px;
             border-radius: 6px;
             font-family: inherit;
             font-size: 13px
+        }
+
+        .iti--container {
+            z-index: 9999
         }
 
         .phone-error {
@@ -746,14 +754,20 @@
             loadSlots(today);
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.6.0/build/js/intlTelInput.min.js"></script>
     <script>
-        var iti = window.intlTelInput(document.getElementById("phoneInput"), {
-            initialCountry: "tr",
-            preferredCountries: ["tr"],
-            separateDialCode: true,
-            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/utils.js"
+        document.addEventListener("DOMContentLoaded", function () {
+            var phoneEl = document.getElementById("phoneInput");
+            if (phoneEl && window.intlTelInput) {
+                window.itiInstance = window.intlTelInput(phoneEl, {
+                    initialCountry: "tr",
+                    separateDialCode: true,
+                    countrySearch: true,
+                    loadUtilsOnInit: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.6.0/build/js/utils.js"
+                });
+                // Override global iti reference for validation
+                window.iti = window.itiInstance;
+            }
         });
     </script>
 </body>
