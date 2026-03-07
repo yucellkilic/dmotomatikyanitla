@@ -399,6 +399,12 @@ app.post("/api/public/appointments", async (req, res) => {
             return res.status(400).json({ error: "MISSING_FIELDS", message: "slug, name, phone, appointment_date zorunlu." });
         }
 
+        // Phone format validation: + prefix, 10-15 digits
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
+        if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
+            return res.status(400).json({ error: "INVALID_PHONE", message: "Geçersiz telefon numarası formatı." });
+        }
+
         const biz = await getBusinessBySlug(slug);
         if (!biz) return res.status(404).json({ error: "BUSINESS_NOT_FOUND" });
 
@@ -435,7 +441,7 @@ app.post("/api/public/appointments", async (req, res) => {
         // Insert
         const { data, error } = await supabase
             .from("appointments")
-            .insert([{ name, phone, service: service || null, appointment_date, business_id: biz.id }])
+            .insert([{ name, phone: cleanPhone, service: service || null, appointment_date, business_id: biz.id }])
             .select("id, appointment_date");
 
         if (error) {

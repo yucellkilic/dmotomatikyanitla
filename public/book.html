@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/css/intlTelInput.min.css" />
     <style>
         *,
         *::before,
@@ -402,6 +403,65 @@
             height: 20px;
             fill: #fff
         }
+
+        /* intl-tel-input dark theme */
+        .iti {
+            width: 100%
+        }
+
+        .iti__country-list {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            max-height: 200px;
+            scrollbar-width: thin
+        }
+
+        .iti__country-list .iti__country:hover,
+        .iti__country-list .iti__country--highlight {
+            background: var(--surface-3)
+        }
+
+        .iti__country-list .iti__divider {
+            border-bottom: 1px solid var(--border)
+        }
+
+        .iti__country-list .iti__dial-code {
+            color: var(--text-dim)
+        }
+
+        .iti__selected-country {
+            background: transparent !important
+        }
+
+        .iti__selected-dial-code {
+            color: var(--text-dim)
+        }
+
+        .iti__arrow {
+            border-top-color: var(--text-dim)
+        }
+
+        .iti__search-input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px
+        }
+
+        .phone-error {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 6px;
+            display: none
+        }
+
+        .phone-error.show {
+            display: block
+        }
     </style>
 </head>
 
@@ -444,7 +504,9 @@
                 </div>
                 <div class="form-group">
                     <label>Telefon</label>
-                    <input type="tel" id="phoneInput" placeholder="05XX XXX XX XX" />
+                    <input type="tel" id="phoneInput" placeholder="5XX XXX XX XX" />
+                    <div class="phone-error" id="phoneError">Lütfen geçerli bir telefon numarası giriniz. Eksik veya
+                        hatalı tuşlama yaptınız.</div>
                 </div>
                 <div class="form-group">
                     <label>Hizmet (opsiyonel)</label>
@@ -600,19 +662,31 @@
 
         // Live validation on inputs
         document.getElementById("nameInput").addEventListener("input", updateSubmitState);
-        document.getElementById("phoneInput").addEventListener("input", updateSubmitState);
+        document.getElementById("phoneInput").addEventListener("input", function () {
+            document.getElementById("phoneError").classList.remove("show");
+            updateSubmitState();
+        });
 
         async function submitBooking() {
             var btn = document.getElementById("submitBtn");
             var msgEl = document.getElementById("formMsg");
+            var phoneErrEl = document.getElementById("phoneError");
             msgEl.innerHTML = "";
+            phoneErrEl.classList.remove("show");
+
+            // Phone validation
+            if (typeof iti !== "undefined" && !iti.isValidNumber()) {
+                phoneErrEl.classList.add("show");
+                return;
+            }
+
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Gönderiliyor...';
 
             var body = {
                 slug: slug,
                 name: document.getElementById("nameInput").value.trim(),
-                phone: document.getElementById("phoneInput").value.trim(),
+                phone: (typeof iti !== "undefined") ? iti.getNumber() : document.getElementById("phoneInput").value.trim(),
                 service: document.getElementById("serviceInput").value.trim() || null,
                 appointment_date: selectedSlot
             };
@@ -631,6 +705,7 @@
                     if (data.error === "SLOT_TAKEN") msg = "Bu saat dolu. Lütfen başka bir saat seçin.";
                     else if (data.error === "OUT_OF_HOURS") msg = "Mesai saatleri dışında.";
                     else if (data.error === "INVALID_SLOT") msg = data.message || "Geçersiz slot.";
+                    else if (data.error === "INVALID_PHONE") msg = "Geçersiz telefon numarası.";
                     else if (data.message) msg = data.message;
                     msgEl.innerHTML = '<div class="msg error">' + msg + '</div>';
                     btn.disabled = false;
@@ -659,8 +734,10 @@
             selectedSlot = null;
             document.getElementById("nameInput").value = "";
             document.getElementById("phoneInput").value = "";
+            if (typeof iti !== "undefined") iti.setNumber("");
             document.getElementById("serviceInput").value = "";
             document.getElementById("formMsg").innerHTML = "";
+            document.getElementById("phoneError").classList.remove("show");
             document.getElementById("submitBtn").disabled = true;
             document.getElementById("submitBtn").textContent = "Randevu Oluştur";
             show("bookingView");
@@ -668,6 +745,16 @@
             document.getElementById("dateInput").value = today;
             loadSlots(today);
         }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/intlTelInput.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/utils.js"></script>
+    <script>
+        var iti = window.intlTelInput(document.getElementById("phoneInput"), {
+            initialCountry: "tr",
+            preferredCountries: ["tr"],
+            separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.3.1/build/js/utils.js"
+        });
     </script>
 </body>
 
